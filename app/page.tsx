@@ -29,6 +29,54 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const loadSessionHistory = async (existingSessionId: string) => {
+    if (!apiBaseUrl) return;
+
+    try {
+      const response = await fetch(
+        `${apiBaseUrl}/v1/sessions/history?sessionId=${encodeURIComponent(existingSessionId)}`
+      );
+
+      if (response.status === 404) {
+        localStorage.removeItem('sessionId');
+        setSessionId(null);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to load session history: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const historyMessages = Array.isArray(data.messages) ? data.messages : [];
+
+      const mappedMessages: Message[] = historyMessages
+        .filter(
+          (m: any) =>
+            (m.role === 'user' || m.role === 'assistant') &&
+            typeof m.content === 'string' &&
+            m.content.trim().length > 0
+        )
+        .map((m: any, index: number) => ({
+          id: `${Date.now()}-${index}`,
+          text: m.content,
+          sender: m.role,
+          timestamp: new Date(),
+        }));
+
+      if (mappedMessages.length > 0) {
+        setMessages(mappedMessages);
+      }
+    } catch (error) {
+      console.error('Failed to load session history:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not load previous conversation. You can reset the session if needed.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -38,6 +86,7 @@ export default function ChatPage() {
     const storedSessionId = localStorage.getItem('sessionId');
     if (storedSessionId) {
       setSessionId(storedSessionId);
+      loadSessionHistory(storedSessionId);
     }
   }, []);
 
