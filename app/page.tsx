@@ -23,9 +23,9 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const apiBaseUrlRaw = process.env.NEXT_PUBLIC_API_BASE || '/api';
-  // Prevent accidental direct calls to an external API from the browser (CORS + key exposure risk).
-  const apiBaseUrl = apiBaseUrlRaw.startsWith('http') ? '/api' : apiBaseUrlRaw;
+  // Always call same-origin proxy routes from the browser.
+  // This avoids CORS issues and ensures the API key never ships to the client.
+  const apiBaseUrl = '/api';
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
